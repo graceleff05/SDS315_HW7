@@ -24,7 +24,7 @@ turnout = read.csv('turnout.csv')
 
 ## **Problem 1: Armfolding**
 
-### Part A: \# of Male/Female Students and Proportions who Folded Left Arm on Top
+### Part A: # of Male/Female Students and Proportions who Folded Left Arm on Top
 
 -   **Number of male students:** `r sum(armfold$Sex == 'Male')`
 
@@ -59,7 +59,6 @@ upper = observed_diff + 1.96*.067
 
 -   **Results from prop.test() function:**
     -   CI = [-0.093, 0.190]
-    -   p-value = 0.563
 -   **Standard error:** 0.067
 
 ```{r, echo=TRUE, results='hide'}
@@ -111,91 +110,66 @@ prop.test(voted1998 ~ GOTV_call, data=turnout)
 
 -   **Sample proportion of those who received a GOTV call who voted in 1998:** `r round(GOTV98_props[2:2], 3)`
 -   **Sample proportion of those who did not receive a GOTV call who voted in 1998:** `r round(GOTV98_props[1:1], 3)`
--   **Results from prop.test() function (GOTV call voters - nonGOTV call voters):**
+-   **Confidence interval (GOTV call voters - nonGOTV call voters):**
     -   CI = [0.141, 0.266]
-    -   p-value = 3.122e-10
 
 ### Part B
  
 #### Analyzing effect of voted1996 variable on GOTV call reception and voting in 1998
 ```{r}
-# Subsetting turnout to sort voters by whether they voted in the 1996 elections or not
-yes_vote_96 = turnout[turnout$voted1996 == 1,]
-no_vote_96 = turnout[turnout$voted1996 == 0,]
-
-# Proportion table
-xtabs(~GOTV_call + voted1998 + voted1996, data=turnout) %>%
-  prop.table %>%
-  round(3)
+# Proportions for GOVT_call and voted1996
+GOTV96_props = prop(voted1996 ~ GOTV_call, data=turnout)
 ```
+
 ```{r, results='hide'}
-#CI for those who voted in the 1996 election
-prop.test(voted1998 ~ GOTV_call, data=yes_vote_96)
-
-#CI for those who did not vote in the 1996 election
-prop.test(voted1998 ~ GOTV_call, data=no_vote_96)
+#CI for difference in proportions of those who did/did not receive a GOTV call who voted in 1996 (did not receive call - received call)
+prop.test(voted1996 ~ GOTV_call, data=turnout)
 ```
 
--   **Results from prop.test() function for difference in proportions of those who voted in 1998 & were GOTV call recipients and those who voted in 1998 & were not GOTV call recipients, among those who voted in the 1996 election:**
-    -   CI = [0.077, 0.209]
-    -   p-value = 0.0001
--   **Results from prop.test() function for difference in proportions of those who voted in 1998 & were GOTV call recipients and those who voted in 1998 & were not GOTV call recipients, among those who didn't vote in the 1996 election:**
-    -   CI = [-0.021, 0.213]
-    -   p-value = 0.077
--   **Analysis:** The voted1996 variable is a confounding variable in preventing the difference observed in Part A from representing the true causal effect of the GOTV call on the likelihood that a person voted in 1998 because for those who cast a vote in the 1996 election, the difference in proportions of those who voted in 1998 + received a GOTV call and those who voted in 1998 + did not receive a GOTV call is somewhere between a difference of 0.209 and 0.077 based on our confidence interval (said with 95% confidence). In contrast, a calculation of the same confidence interval but among those who did not cast a vote in the 1996 election results in a difference between -0.021 and 0.213, but because 0 is included within the interval, it cannot be said that there is a significant difference between 1998 voters/1996 non-voters who did and did not receive GOTV calls. This implies that voting in the 1996 election increases the chance of both voting in the 1998 election and receiving a GOTV call.
+-   **Sample proportion of those who received a GOTV call who voted in 1996:** `r round(GOTV96_props[2:2], 3)`
+-   **Sample proportion of those who did not receive a GOTV call who voted in 1996:** `r round(GOTV96_props[1:1], 3)`
+-   **Sample difference in proportions:** `r round(GOTV96_props[2:2]-GOTV96_props[1:1], 3)`
+-   **Confidence interval (GOTV call voters - nonGOTV call voters):**
+    -   CI = [0.122, 0.241]
+-   **Analysis:** The voted1996 variable is a confounding variable in preventing the difference observed in Part A from representing the true causal effect of the GOTV call on the likelihood that a person voted in 1998 because whether someone voted in 1996 influences whether they received a GOTV call and therefore whether they voted in 1998 (since receiving a GOTV call itself influences whether someone voted in 1998). This is illustrated by the above confidence interval. The 95% confidence interval for the difference in proportions of those who received a GOTV call who voted in 1996 and those who did not receive a GOTV call who voted in 1996 suggests that this difference is somewhere between 0.122 and 0.241, or 12.2% and 24.1%. This confidence interval suggests a significant difference between the proportions, thus influencing the relationship between GOTV_call and voted1998 and solidifying its status as a confounding variable.
     
 #### Analyzing effect of AGE variable on GOTV call reception and voting in 1998
 ```{r}
-# Grouping turnout by GOTV_call and calculating average age for each group (for those who voted in 1998)
+# Grouping turnout by GOTV_call and calculating average age for each group
 age_GOTV = turnout %>%
-  filter(voted1998 == 1) %>%
   group_by(GOTV_call) %>%
   summarize(avg_age = mean(AGE))
-age_GOTV
-
-# Difference in the mean ages
-diff_age = age_GOTV[1,2]-age_GOTV[2,2]
-
-# Subsetting turnout to include only 1998 voters
-yes_vote_98 = turnout[turnout$voted1998 == 1,]
 ```
+
 ```{r, results='hide'}
-# CI for difference in mean age between 1998 voters who received a GOTV call and those who did not
-t.test(AGE~GOTV_call, data=yes_vote_98)
+# CI for difference in mean age of those who received a GOTV call and those who did not
+t.test(AGE ~ GOTV_call, data=turnout)
 ```
 
--   **Sample difference in mean age of 1998 voters who received a GOTV call and those who did not:** round(diff_age[1:1], 3) years
--   **Results from t.test() function difference in mean age for 1998 voters who received a GOTV call and those who did not:**
-    -   CI = [-9.294, -3.328]
-    -   p-value = 4.729e-05
--   **Analysis:**  The AGE variable is a confounding variable in preventing the difference observed in Part A from representing the true causal effect of the GOTV call on the likelihood that a person voted in 1998 because the confidence interval for the difference in mean age of the GOTV call group of 1998 voters and the non GOVT call group of 1998 voters is a difference between -9.294 and -3.328 years (no GOTV call-GOTV call) (with 95% confidence), meaning that there is a significant difference in the average age of 1998 voters who did and did not receive a GOTV call. This further implies that the age of a voter influences whether they receive a GOTV call and whether they vote in 1998.
+-   **Mean age of those who did not receive a GOTV call:** `r round(age_GOTV[1,2], 3)` years
+-   **Mean age of those who received a GOTV call:** `r round(age_GOTV[2,2], 3)` years
+-   **Sample difference in mean age:** `r round(age_GOTV[1,2]-age_GOTV[2,2], 3)` years
+-   **Confidence interval (mean age of nonGOTV call voters - mean age of GOTV call voters):**
+    -   CI = [-11.395, -6.370]
+-   **Analysis:**  The AGE variable is a confounding variable in preventing the difference observed in Part A from representing the true causal effect of the GOTV call on the likelihood that a person voted in 1998 because someone’s age influences whether they received a GOTV call and therefore whether they voted in 1998 (since receiving a GOTV call itself influences whether someone voted in 1998). This is illustrated by the above confidence intervals. The 95% confidence interval for the difference in means of those who received a GOTV call and those who did not receive a GOTV call suggests that this difference is somewhere between -11.395 and -6.370 years (mean age of those who did not receive a call – that of those who did). This confidence interval suggests a significant difference between the means, thus influencing the relationship between GOTV_call and voted1998 and solidifying its status as a confounding variable.
 
 #### Analyzing effect of MAJORPTY variable on GOTV call reception and voting in 1998
 ```{r}
-# Subsetting turnout to sort voters by whether they are registered with a major party
-yes_party = turnout[turnout$MAJORPTY == 1,]
-no_party = turnout[turnout$MAJORPTY == 0,]
-
-# Proportion table
-xtabs(~GOTV_call + voted1998 + MAJORPTY, data=turnout) %>%
-  prop.table %>%
-  round(3)
+# Proportions for GOVT_call and MAJORPTY
+GOTVmajor_props = prop(MAJORPTY ~ GOTV_call, data=turnout)
 ```
+
 ```{r, results='hide'}
-#CI for those who are registered with a major party
-prop.test(voted1998 ~ GOTV_call, data=yes_party)
-
-#CI for those who are not registered with a major party
-prop.test(voted1998 ~ GOTV_call, data=no_party)
+#CI for difference in proportions of those who did/did not receive a GOTV call who were registered with a major party (did not receive call - received call)
+prop.test(MAJORPTY ~ GOTV_call, data=turnout)
 ```
--   **Results from prop.test() function for difference in proportions of those who voted in 1998 & were GOTV call recipients and those who voted in 1998 & were not GOTV call recipients, among those registered with a major party:**
-    -   CI = [0.125, 0.263]
-    -   p-value = 1.019e-07
--   **Results from prop.test() function for difference in proportions of those who voted in 1998 & were GOTV call recipients and those who voted in 1998 & were not GOTV call recipients, among those not registered with a major party:**
-    -   CI = [0.054, 0.355]
-    -   p-value = 0.005
--   **Analysis:** The MAJORPTY variable is a confounding variable in preventing the difference observed in Part A from representing the true causal effect of the GOTV call on the likelihood that a person voted in 1998 because for those who were registered with a major party, the difference in proportions of those who voted in 1998 + received a GOTV call and those who voted in 1998 + did not receive a GOTV call is somewhere between a difference of 0.125 and 0.263 based on our confidence interval (said with 95% confidence). In contrast, a calculation of the same confidence interval but among those who were not registered with a major party results in a difference between 0.054 and 0.355 (said with 95% confidence). This implies that being whether or not a voter is registered with a major party influences the chance of both voting in the 1998 election and receiving a GOTV call.
 
+-   **Sample proportion of those who received a GOTV call who were registered with a major party:** `r round(GOTVmajor_props[2:2], 3)`
+-   **Sample proportion of those who did not receive a GOTV call who were registered with a major party:** `r round(GOTVmajor_props[1:1], 3)`
+-   **Sample difference in proportions:** `r round(GOTVmajor_props[2:2]-GOTVmajor_props[1:1], 3)`
+-   **Confidence interval (GOTV call voters - nonGOTV call voters):**
+    -   CI = [0.004, 0.109]
+-   **Analysis:** The MAJORPTY variable is a confounding variable in preventing the difference observed in Part A from representing the true causal effect of the GOTV call on the likelihood that a person voted in 1998 because whether someone is registered with a major party influences whether they received a GOTV call and therefore whether they voted in 1998 (since receiving a GOTV call itself influences whether someone voted in 1998). This is illustrated by the above confidence intervals. The 95% confidence interval for the difference in proportions of those who received a GOTV call who were registered with a major party and those who did not receive a GOTV call who were registered with a major party suggests that this difference is somewhere between 0.004 and 0.109, or 0.4% and 10.9%. This confidence interval suggests a significant difference between the proportions, thus influencing the relationship between GOTV_call and voted1998 and solidifying its status as a confounding variable.
 
 ### Part C
 
@@ -205,82 +179,63 @@ turnout_matched = matchit(GOTV_call ~ voted1996 + AGE + MAJORPTY, data = turnout
   match.data
 ```
 
-#### voted1996 variable
+#### Analyzing influence of voted1996 variable under matched data
 ```{r}
-# Subsetting turnout to sort voters by whether they voted in the 1996 elections or not
-yes_vote_96_matched = turnout_matched[turnout_matched$voted1996 == 1,]
-no_vote_96_matched = turnout_matched[turnout_matched$voted1996 == 0,]
-
-# Proportion table
-xtabs(~GOTV_call + voted1998 + voted1996, data=turnout_matched) %>%
-  prop.table %>%
-  round(3)
+# Proportions for GOVT_call and voted1996
+GOTV96_props_matched = prop(voted1996 ~ GOTV_call, data=turnout_matched)
 ```
+
 ```{r, results='hide'}
-#CI for those who voted in the 1996 election
-prop.test(voted1998 ~ GOTV_call, data=yes_vote_96_matched)
-
-#CI for those who did not vote in the 1996 election
-prop.test(voted1998 ~ GOTV_call, data=no_vote_96_matched)
+#CI for difference in proportions of those who did/did not receive a GOTV call who voted in 1996 (did not receive call - received call)
+prop.test(voted1996 ~ GOTV_call, data=turnout_matched)
 ```
 
--   **Results from prop.test() function for difference in proportions of those who voted in 1998 & were GOTV call recipients and those who voted in 1998 & were not GOTV call recipients, among those who voted in the 1996 election:**
-    -   CI = [0.013, 0.157]
-    -   p-value = 0.029
--   **Results from prop.test() function for difference in proportions of those who voted in 1998 & were GOTV call recipients and those who voted in 1998 & were not GOTV call recipients, among those who didn't vote in the 1996 election:**
-    -   CI = [-0.064, 0.188]
-    -   p-value = 0.3551
+-   **Sample proportion of those who received a GOTV call who voted in 1996:** `r round(GOTV96_props_matched[2:2], 3)`
+-   **Sample proportion of those who did not receive a GOTV call who voted in 1996:** `r round(GOTV96_props_matched[1:1], 3)`
+-   **Sample difference in proportions:** `r round(GOTV96_props_matched[2:2]-GOTV96_props_matched[1:1], 3)`
+-   **Confidence interval (GOTV call voters - nonGOTV call voters):**
+    -   CI = [-0.062, 0.062]
+-   **Analysis:** The voted1996 variable is no longer a confounding variable in preventing the difference in Part A from representing the true causal effect of the GOTV call on the likelihood that a person voted in 1998 because under the matched data, the proportion of those who received a GOTV call who voted in 1996 is the same as the proportion of those who did not receive a GOTV call who voted in 1996 (see above). The 95% confidence interval illustrates that the difference between these proportions is somewhere between -0.062 and 0.062. Because 0 is contained in the interval, it cannot be said that there is a significant difference between the proportions. Thus, voted1996 is no longer a confounding variable.
     
-#### AGE variable
+#### Analyzing influence of AGE variable under matched data
 ```{r}
-# Grouping turnout by GOTV_call and calculating average age for each group (for those who voted in 1998)
+# Grouping turnout by GOTV_call and calculating average age for each group
 age_GOTV_matched = turnout_matched %>%
-  filter(voted1998 == 1) %>%
   group_by(GOTV_call) %>%
   summarize(avg_age = mean(AGE))
-age_GOTV_matched
-
-# Difference in the mean ages
-diff_age_matched = age_GOTV_matched[1,2]-age_GOTV_matched[2,2]
-
-# Subsetting turnout to include only 1998 voters
-yes_vote_98_matched = turnout_matched[turnout_matched$voted1998 == 1,]
 ```
+
 ```{r, results='hide'}
-# CI for difference in mean age between 1998 voters who received a GOTV call and those who did not
-t.test(AGE~GOTV_call, data=yes_vote_98_matched)
+# CI for difference in mean age of those who received a GOTV call and those who did not
+t.test(AGE ~ GOTV_call, data=turnout_matched)
 ```
 
--   **Sample difference in mean age of 1998 voters who received a GOTV call and those who did not:** round(diff_age_matched[1:1], 3) years
--   **Results from t.test() function difference in mean age for 1998 voters who received a GOTV call and those who did not:**
-    -   CI = [-1.453, 4.939]
-    -   p-value = 0.2837
+-   **Mean age of those who did not receive a GOTV call:** `r round(age_GOTV_matched[1,2], 3)` years
+-   **Mean age of those who received a GOTV call:** `r round(age_GOTV_matched[2,2], 3)` years
+-   **Sample difference in mean age:** `r round(age_GOTV_matched[1,2]-age_GOTV_matched[2,2], 3)` years
+-   **Confidence interval (mean age of nonGOTV call voters - mean age of GOTV call voters):**
+    -   CI = [-2.760, 2.678]
+-   **Analysis:** The AGE variable is no longer a confounding variable in preventing the difference in Part A from representing the true causal effect of the GOTV call on the likelihood that a person voted in 1998 because under the matched data, the mean age of those who did not receive a GOTV call is virtually the same as the mean age of those who received a GOTV call (see above). The 95% confidence interval illustrates that the difference between these means is somewhere between -2.760 and 2.678 years. Because 0 is contained in the interval, it cannot be said that there is a significant difference between the means. Thus, AGE is no longer a confounding variable.
 
-#### MAJORPTY variable
+#### Analyzing influence of MAJORPTY variable under matched data
 ```{r}
-# Subsetting turnout to sort voters by whether they are registered with a major party
-yes_party_matched = turnout_matched[turnout_matched$MAJORPTY == 1,]
-no_party_matched = turnout_matched[turnout_matched$MAJORPTY == 0,]
-
-# Proportion table
-xtabs(~GOTV_call + voted1998 + MAJORPTY, data=turnout_matched) %>%
-  prop.table %>%
-  round(3)
+# Proportions for GOVT_call and MAJORPTY
+GOTVmajor_props_matched = prop(MAJORPTY ~ GOTV_call, data=turnout_matched)
 ```
+
 ```{r, results='hide'}
-#CI for those who are registered with a major party
-prop.test(voted1998 ~ GOTV_call, data=yes_party_matched)
-
-#CI for those who are not registered with a major party
-prop.test(voted1998 ~ GOTV_call, data=no_party_matched)
+#CI for difference in proportions of those who did/did not receive a GOTV call who were registered with a major party (did not receive call - received call)
+prop.test(MAJORPTY ~ GOTV_call, data=turnout_matched)
 ```
--   **Results from prop.test() function for difference in proportions of those who voted in 1998 & were GOTV call recipients and those who voted in 1998 & were not GOTV call recipients, among those registered with a major party:**
-    -   CI = [-0.003, 0.147]
-    -   p-value = 0.06925
--   **Results from prop.test() function for difference in proportions of those who voted in 1998 & were GOTV call recipients and those who voted in 1998 & were not GOTV call recipients, among those not registered with a major party:**
-    -   CI = [-0.055, 0.275]
-    -   p-value = 0.2122
 
+-   **Sample proportion of those who received a GOTV call who were registered with a major party:** `r round(GOTVmajor_props_matched[2:2], 3)`
+-   **Sample proportion of those who did not receive a GOTV call who were registered with a major party:** `r round(GOTVmajor_props_matched[1:1], 3)`
+-   **Sample difference in proportions:** `r round(GOTVmajor_props_matched[2:2]-GOTVmajor_props_matched[1:1], 3)`
+-   **Confidence interval (GOTV call voters - nonGOTV call voters):**
+    -   CI = [-0.062, 0.051]
+-   **Analysis:** The MAJORPTY variable is no longer a confounding variable in preventing the difference in Part A from representing the true causal effect of the GOTV call on the likelihood that a person voted in 1998 because under the matched data, the proportion of those who received a GOTV call who were registered with a major party is the same as the proportion of those who did not receive a GOTV call who were registered with a major party (see above). The 95% confidence interval illustrates that the difference between these proportions is somewhere between -0.062 and 0.051. Because 0 is contained in the interval, it cannot be said that there is a significant difference between the proportions. Thus, MAJORPTY is no longer a confounding variable.
+
+#### Analysis from Part A, but with matched data set
 ```{r, results='hide'}
 # Calculate proportion of 1998 voters who did/did not receive GOTV calls
 GOTV98_props_matched = prop(voted1998 ~ GOTV_call, data=turnout_matched)
@@ -293,5 +248,4 @@ prop.test(voted1998 ~ GOTV_call, data=turnout_matched)
 -   **Sample proportion of those who did not receive a GOTV call who voted in 1998:** `r round(GOTV98_props_matched[1:1], 3)`
 -   **Results from prop.test() function (GOTV call voters - nonGOTV call voters):**
     -   CI = [0.010, 0.147]
-    -   p-value = 0.027
--   **Conclusion:** Based on the above matched confidence interval, it can be said that we are 95% confident that the difference in the proportion of people who received a GOTV call/voted in 1998 and the proportion of people who did not receive a GOTV call/voted in 1998 is somewhere between 0.010 and 0.147, or 1% and 14.7%.  This suggests that receiving a GOTV call increases the likelihood of voting in the 1998 election.
+-   **Conclusion:** Based on the matched data, it can be concluded with 95% confidence that the difference between the proportion of those who received a GOTV call who voted in 1998 and those who did not receive a GOTV call who voted in 1998 is somewhere between a difference of 0.010 and 0.147, or 1.0% and 14.7%. In other words, receiving a GOTV call increases the likelihood of voting in the 1998 congressional elections.
